@@ -1,0 +1,248 @@
+
+import java.io.*;
+
+public class BlackJack{
+   private KartenSpiel kartenSpiel;
+   private Spieler      spieler, dealer;
+   private int einsatz;
+   private boolean spiellaeuft;
+
+   // Konstruktor 
+   public BlackJack(String n){
+      kartenSpiel = new KartenSpiel();
+      spieler     = new Spieler(n, 500);
+      dealer      = new Spieler("Dealer", 10000);
+      einsatz     = 0;
+      spiellaeuft = false;
+   }
+   
+   // get-set-Funktionen
+   public Spieler getSpieler(){
+      return spieler;
+   }
+   
+   public Spieler getDealer(){
+      return dealer;
+   }
+   
+   public int getEinsatz(){
+      return einsatz;
+   }     
+
+   public boolean getSpielStatus(){
+      return spiellaeuft;
+   }     
+   
+   // BlackJack-Methoden
+   public void neuesSpiel(){     
+      spieler.clear();
+      dealer.clear();
+      
+      spieler.addKarte(kartenSpiel.gibEineKarte());
+      dealer.addKarte(kartenSpiel.gibEineKarte());
+      spieler.addKarte(kartenSpiel.gibEineKarte());
+      dealer.addKarte(kartenSpiel.gibEineKarte());    
+      
+      spiellaeuft = true;        
+   }
+
+   public void neueKarte(){      
+      spieler.addKarte(kartenSpiel.gibEineKarte());
+   }
+   
+   public void dealerIstDran(){
+      while ((dealer.aktuelleWertung() <= 16) && (dealer.getAnzahlKarten() < 5))
+         dealer.addKarte(kartenSpiel.gibEineKarte());
+   }
+   
+   public boolean erhoeheEinsatz(){
+      if (dealer.getGeld()-50 >= 0){
+         dealer.setGeld(dealer.getGeld()-50);
+         einsatz+=50;         
+      }
+      else {
+         System.out.println();
+         System.out.println("WOW!!! DU HAST DIE BANK PLEITE GEMACHT! GRATULATION!!");
+         System.out.println();
+         System.exit(1);
+      }
+      
+      if (spieler.getGeld()-50 >= 0){
+         spieler.setGeld(spieler.getGeld()-50);
+         einsatz+=50;
+         return true;
+      }
+      return false;
+   }
+   
+   // ************************************************************************
+   // statische Methoden und main
+   private static void hilfe(){
+      System.out.println();
+      System.out.println("Eingaben: ");
+      System.out.println("   n = eine neue Karte");
+      System.out.println("   d = fertig, Dealer ist dran");
+      System.out.println("   + = Einsatz um 50$ erhoehen");
+      System.out.println("   r = neue Runde");
+      System.out.println("   x = Spiel beenden");
+      System.out.println("   ? = Hilfe");    
+      System.out.println();
+   }
+
+   private static void ausgabeKartenSpieler(Spieler s, Spieler d){
+      System.out.println();
+      System.out.print("Du erhaelst: ");
+      for (int i=0; i < s.getAnzahlKarten(); i++) {
+         Karte karte = s.getKarte(i);
+         System.out.print(karte.Karte2String()+" ");
+      }     
+      System.out.println("(Wertung="+s.aktuelleWertung()+")");       
+      System.out.print("Der Dealer erhaelt: ");
+      for (int i=0; i < d.getAnzahlKarten(); i++) {
+         Karte karte = d.getKarte(i);
+         System.out.print(karte.Karte2String()+" ");
+      }     
+      System.out.println("(Wertung="+d.aktuelleWertung()+")");
+      System.out.println();
+   }
+
+   private static void kontoDaten(Spieler s, Spieler d){
+      System.out.println();
+      System.out.println("$$$ "+s.getName()+": "+s.getGeld()+", Bank: "+d.getGeld()+" $$$");
+      System.out.println();
+   }
+   
+   public static void main(String[] args){
+      System.out.println("--------------------------------------------------------------");
+      System.out.println("--  WILLKOMMEN zu einem Spiel BlackJack!                   ---");
+      System.out.println("--------------------------------------------------------------");
+      hilfe();    
+
+      InputStreamReader stdin = new InputStreamReader(System.in);
+      BufferedReader console  = new BufferedReader(stdin);
+
+      System.out.print("Geben Sie Ihren Namen an: ");
+      String name = "";
+      try {
+          name = console.readLine();
+      } catch(IOException ioex){
+         System.out.println("Eingabefehler");
+         System.exit(1);
+      }
+      
+      System.out.println();
+      System.out.println("Hallo "+name+", Dir stehen 500$ als Kapitel zur Verfuegung.");
+      System.out.println("Mach Deinen Einsatz(+) und beginne das Spiel(r).");
+      System.out.println();
+      
+      // Nun starten wir eine Runde BlackJack
+      BlackJack blackjack = new BlackJack(name);      
+      
+      kontoDaten(blackjack.getSpieler(), blackjack.getDealer());
+      
+      boolean istFertig = false;
+      String input="";
+      while (!istFertig){
+         try {
+            input = console.readLine();
+         } catch(IOException ioex){
+            System.out.println("Eingabefehler");
+         }
+         if (input.equals("n")){
+            // eine zusätzliche Karte bitte
+            if (blackjack.getSpielStatus()) {
+               blackjack.neueKarte();
+               if (blackjack.getSpieler().aktuelleWertung() > 21){
+                  System.out.println("Du hast verloren! Deine Wertung liegt mit " 
+                     + blackjack.getSpieler().aktuelleWertung() + " ueber 21.");
+                  blackjack.getDealer().setGeld(blackjack.getDealer().getGeld()
+                     +blackjack.einsatz);            
+                  blackjack.einsatz       = 0;
+                  blackjack.spiellaeuft   = false;    
+                  kontoDaten(blackjack.getSpieler(), blackjack.getDealer());
+               }      
+               else {
+                  ausgabeKartenSpieler(blackjack.getSpieler(), blackjack.getDealer()); //***
+               }        
+            }                       
+         }
+         else if (input.equals("d")){
+            // Das Spiel wird an den Dealer übergeben
+            if ((blackjack.getEinsatz() > 0)&&(blackjack.getSpielStatus())) {
+               blackjack.dealerIstDran();
+               
+               if (blackjack.getDealer().aktuelleWertung() > 21){
+                  System.out.println("Du hast gewonnen! Der Dealer hat mit " 
+                     + blackjack.getDealer().aktuelleWertung() + " ueberboten.");
+                  blackjack.getSpieler().setGeld(blackjack.getSpieler().getGeld()
+                     +blackjack.einsatz);                               
+               }
+               else if (blackjack.getDealer().getAnzahlKarten() == 5){
+                  System.out.println("Du hast verloren. Der Dealer erhielt 5 Karten unter 21.");
+                  blackjack.getDealer().setGeld(blackjack.getDealer().getGeld()+blackjack.einsatz);
+               }
+               else if (blackjack.getDealer().aktuelleWertung() >= blackjack.getSpieler().aktuelleWertung()){
+                  System.out.println("Du hast verloren. " + blackjack.getDealer().aktuelleWertung()+ " zu " 
+                      + blackjack.getSpieler().aktuelleWertung() + ".");
+                  blackjack.getDealer().setGeld(blackjack.getDealer().getGeld()+blackjack.einsatz); 
+               }
+               else if (blackjack.getDealer().aktuelleWertung() == blackjack.getSpieler().aktuelleWertung()){
+                  System.out.println("Du hast verloren. Der Dealer zog mit "+blackjack.getDealer().aktuelleWertung()
+                      +" Punkten gleich.");
+                  blackjack.getDealer().setGeld(blackjack.getDealer().getGeld()+blackjack.einsatz);
+               }
+               else {
+                  System.out.println("Du hast gewonnen! " + blackjack.getSpieler().aktuelleWertung() 
+                      + " zu " + blackjack.getDealer().aktuelleWertung() + "!");   
+                  blackjack.getSpieler().setGeld(blackjack.getSpieler().getGeld()+blackjack.einsatz);      
+               }
+                  
+               kontoDaten(blackjack.getSpieler(), blackjack.getDealer());
+               blackjack.einsatz       = 0;
+               blackjack.spiellaeuft   = false; 
+            }
+         }
+         else if (input.equals("+")){
+            // erhöhe den Einsatz
+            if (blackjack.getSpielStatus())
+               System.out.println("Spiel laeuft bereits. Keine Erhoehung moeglich");
+            else {
+               if (!(blackjack.erhoeheEinsatz()))
+                  System.out.println("Dein Geld reicht leider nicht mehr zum erhoehen.");       
+               else                 
+                  System.out.println("Einsatz wurde um 50$ auf "+blackjack.getEinsatz()+" erhoeht."); 
+            }
+         }
+         else if (input.equals("r")){
+            // eine neue Runde wird gestartet, nachdem die Einsätze gemacht wurden
+            if ((blackjack.getEinsatz() > 0)&&(!blackjack.getSpielStatus())){
+               blackjack.neuesSpiel();
+               kontoDaten(blackjack.getSpieler(), blackjack.getDealer());
+               ausgabeKartenSpieler(blackjack.getSpieler(), blackjack.getDealer());  //***
+                     
+               if (blackjack.getDealer().aktuelleWertung() == 21) {
+                  System.out.println("Schon verloren! Dealer hat 21 Punkte");
+                  blackjack.einsatz       = 0;
+                  blackjack.spiellaeuft   = false;                
+                  kontoDaten(blackjack.getSpieler(), blackjack.getDealer());
+               }
+               else if (blackjack.getSpieler().aktuelleWertung() == 21) {
+                  System.out.println("Du hast mit BlackJack gewonnen!");
+                  blackjack.einsatz       = 0;
+                  blackjack.spiellaeuft   = false;                
+                  kontoDaten(blackjack.getSpieler(), blackjack.getDealer());
+               }                             
+            }
+               
+         }
+         else if (input.equals("?")){
+            // Welche Programmeingaben sind möglich?
+            hilfe();
+         }
+         else if (input.equals("x")){
+            // Programm wird beendet
+            istFertig=true;
+            break;
+         }
+      }
+   }
